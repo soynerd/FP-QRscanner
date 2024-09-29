@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Entry Check</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    h1 {
+      text-align: center;
+    }
+
+    #qr-reader {
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      border: 2px solid #1e88e5;
+      border-radius: 10px;
+      overflow: hidden;
+      background-color: #1e1e1e;
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      border: 2px solid #1e88e5;
+      border-radius: 10px;
+      display: none;
+      text-align: center;
+    }
+
+    .button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 25px;
+      background-color: #1e88e5;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .button:hover {
+      background-color: #1565c0;
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.5em;
+      }
+      .button {
+        font-size: 17px;
+        padding: 8px 16px;
+      }
+    }
+
+    .status-permitted {
+      border-color: green;
+      background-color: rgba(76, 175, 80, 0.2);
+    }
+
+    .status-already-used {
+      border-color: red;
+      background-color: rgba(244, 67, 54, 0.2);
+    }
+
+    .status-not-permitted {
+      border-color: orange;
+      background-color: rgba(255, 152, 0, 0.2);
+    }
+
+    .status-scanning {
+      border-color: blue;
+      background-color: rgba(33, 150, 243, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <h1>QR Code Scanner for Entry</h1>
+  <div id="qr-reader"></div>
+  
+  <div id="result"></div>
+  
+  <button id="checkButton" class="button" style="display:none;">Check Entry</button>
+  
+  <script>
+    function onScanSuccess(qrMessage) {
+      const resultElement = document.getElementById('result');
+      resultElement.innerHTML = `<p><span style="color: cyan;">QR Code:</span> ${qrMessage}</p>`;
+      resultElement.className = 'status-scanning';
+      resultElement.style.display = 'block';
+      document.getElementById('checkButton').style.display = 'block';
+    }
+
+    function onScanError(error) {
+      console.warn(`QR code scanning error: ${error}`);
+    }
+
+    let qrScanner = new Html5Qrcode("qr-reader");
+
+    function startScanner() {
+      qrScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        onScanSuccess,
+        onScanError
+      ).catch(err => {
+        console.error("Error starting the QR scanner:", err);
+      });
+    }
+
+    function stopScanner() {
+      qrScanner.stop().then(() => {
+        console.log("QR scanner stopped");
+      }).catch(err => {
+        console.error("Error stopping the QR scanner:", err);
+      });
+    }
+
+    document.getElementById('checkButton').addEventListener('click', function() {
+      this.textContent = 'Checking...';
+      const qrCode = document.getElementById('result').innerText.split(': ')[1];
+
+      fetch(`https://script.google.com/macros/s/AKfycbybl963bh9d2YA3JhfoyKMC2q5duGLVxBoi5VGM7CyskpxRMMsxvKXjmwJs9RyygjawKw/exec?qrcode=${encodeURIComponent(qrCode)}`)
+      .then(response => response.json())
+      .then(data => {
+        const resultElement = document.getElementById('result');
+        resultElement.innerHTML = `<p>${"Entry allowed"}</p>`;
+        resultElement.className = 'status-permitted';
+
+        
+        this.style.display = 'none';
+        stopScanner(); 
+        setTimeout(startScanner, 1000);
+        this.textContent = 'Check Entry';
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        this.textContent = 'Check Entry';
+      });
+    });
+
+    startScanner(); 
+  </script>
+</body>
+</html>
